@@ -21,6 +21,14 @@
 
   <div id="map"></div>
 
+  <button id="locate-btn" aria-label="Center on my location">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+      <circle cx="12" cy="12" r="8"/>
+    </svg>
+  </button>
+
   <div id="modal" class="hidden">
     <form id="memory-form">
       <h2>New Memory</h2>
@@ -44,17 +52,16 @@
     </form>
   </div>
 
-  <!-- Memory sidebar -->
   <aside id="sidebar" aria-hidden="true">
     <button id="close-sidebar" aria-label="Close">×</button>
     <div id="sidebar-content"></div>
   </aside>
 
+  <script src="js/config.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/storage.js"></script>
-<script src="js/config.js"></script>
-<script src="js/map.js"></script>
-<script src="js/pins.js"></script>
-<script src="js/app.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/pins.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
