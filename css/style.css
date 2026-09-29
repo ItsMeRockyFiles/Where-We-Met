@@ -1,0 +1,290 @@
+/* ---------- Base ---------- */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+.hidden { display: none !important; }
+
+/* ---------- Header ---------- */
+#app-header {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 16px 22px;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  max-width: 280px;
+}
+#app-header h1 {
+  margin: 0 0 4px;
+  font-family: 'Playfair Display', serif;
+  font-weight: 500;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+#app-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* ---------- Map ---------- */
+#map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* ---------- Empty state ---------- */
+#empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 400;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  padding: 26px 34px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  max-width: 320px;
+  pointer-events: none;
+}
+#empty-state h2 {
+  margin: 0 0 6px;
+  font-family: 'Playfair Display', serif;
+  font-weight: 500;
+  font-size: 20px;
+}
+#empty-state p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+/* ---------- Custom markers ---------- */
+.custom-marker { background: transparent; border: none; }
+.marker-pin {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 3px #e91e63;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.custom-marker:hover .marker-pin,
+.custom-marker.active .marker-pin {
+  transform: scale(1.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 4px #e91e63;
+}
+.marker-inner {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+}
+.marker-inner--dot {
+  background: #e91e63;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* ---------- Modal ---------- */
+#modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 15, 25, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#modal.visible { opacity: 1; }
+
+#memory-form {
+  background: #fff;
+  border-radius: 18px;
+  padding: 26px 28px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  transform: scale(0.96);
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#modal.visible #memory-form { transform: scale(1); }
+
+#memory-form h2 {
+  margin: 0 0 14px;
+  font-family: 'Playfair Display', serif;
+  font-weight: 500;
+  font-size: 22px;
+}
+#memory-form label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  margin-top: 8px;
+}
+#memory-form input[type="text"],
+#memory-form input[type="date"],
+#memory-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid #e3e3e3;
+  border-radius: 10px;
+  background: #fafafa;
+  transition: border 0.15s ease, background 0.15s ease;
+}
+#memory-form input:focus,
+#memory-form textarea:focus {
+  outline: none;
+  border-color: #e91e63;
+  background: #fff;
+}
+#memory-form textarea { resize: vertical; min-height: 70px; }
+#memory-form input[type="file"] {
+  font-size: 13px;
+  padding: 6px 0;
+}
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.form-actions button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+#cancel-btn {
+  background: #f0f0f0;
+  color: #555;
+}
+#cancel-btn:hover { background: #e6e6e6; }
+.form-actions button[type="submit"] {
+  background: #e91e63;
+  color: #fff;
+}
+.form-actions button[type="submit"]:hover { background: #d11657; }
+.form-actions button:active { transform: scale(0.97); }
+.form-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Sidebar ---------- */
+#sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 380px;
+  max-width: 100%;
+  background: #fff;
+  z-index: 900;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.12);
+  overflow-y: auto;
+}
+#sidebar.open { transform: translateX(0); }
+
+#close-sidebar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  color: #555;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#close-sidebar:hover { background: #f0f0f0; }
+
+#sidebar-content { display: flex; flex-direction: column; }
+.memory-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background-size: cover;
+  background-position: center;
+  background-color: #f5f5f5;
+}
+.memory-body { padding: 24px 26px 32px; }
+.memory-title {
+  margin: 0 0 6px;
+  font-family: 'Playfair Display', serif;
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.memory-date {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #e91e63;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+.memory-desc {
+  margin: 0 0 24px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #444;
+  white-space: pre-wrap;
+}
+.delete-btn {
+  font-size: 13px;
+  color: #999;
+  text-decoration: underline;
+  padding: 0;
+}
+.delete-btn:hover { color: #e91e63; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 720px) {
+  #app-header { top: 12px; left: 12px; right: 12px; max-width: none; padding: 12px 16px; }
+  #app-header h1 { font-size: 18px; }
+  #sidebar { width: 100%; }
+  .memory-body { padding: 22px 20px 32px; }
+}
