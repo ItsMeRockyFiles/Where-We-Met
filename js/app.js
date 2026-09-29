@@ -4,22 +4,27 @@ const titleInput      = document.getElementById('title');
 const dateInput       = document.getElementById('date');
 const descriptionInput= document.getElementById('description');
 const photoInput      = document.getElementById('photo');
+const photoPreview    = document.getElementById('photo-preview');
+const photoPreviewImg = document.getElementById('photo-preview-img');
+const photoRemove     = document.getElementById('photo-remove');
+const photoLabel      = document.getElementById('photo-label');
 const cancelBtn       = document.getElementById('cancel-btn');
 const sidebar         = document.getElementById('sidebar');
 const sidebarContent  = document.getElementById('sidebar-content');
 const closeSidebarBtn = document.getElementById('close-sidebar');
 const locateBtn       = document.getElementById('locate-btn');
+const nearbyHint      = document.getElementById('nearby-hint');
 
 let pendingCoords = null;
-let activePinId   = null;
+let activePlaceId = null;
+let nearbyPlace   = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   renderAllPins();
 
-  const pins = getPins();
-
-  if (pins.length > 0) {
-    const latest = pins.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+  const places = getPlaces();
+  if (places.length > 0) {
+    const latest = places.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
     map.setView([latest.lat, latest.lng], 13);
   } else {
     centerOnUser();
@@ -29,6 +34,7 @@ window.addEventListener('DOMContentLoaded', () => {
 map.on('click', (e) => {
   closeSidebar();
   pendingCoords = { lat: e.latlng.lat, lng: e.latlng.lng };
+  nearbyPlace = findNearbyPlace(e.latlng.lat, e.latlng.lng);
   openModal();
 });
 
@@ -36,11 +42,19 @@ locateBtn.addEventListener('click', centerOnUser);
 
 function openModal() {
   form.reset();
+  hidePhotoPreview();
   dateInput.value = new Date().toISOString().slice(0, 10);
+
+  if (nearbyPlace) {
+    const latest = nearbyPlace.memories[nearbyPlace.memories.length - 1];
+    nearbyHint.textContent = 'Adding to existing pin: ' + latest.title;
+    nearbyHint.classList.remove('hidden');
+  } else {
+    nearbyHint.classList.add('hidden');
+  }
 
   modal.classList.remove('hidden');
   requestAnimationFrame(() => modal.classList.add('visible'));
-
   setTimeout(() => titleInput.focus(), 120);
 }
 
@@ -48,6 +62,7 @@ function closeModal() {
   modal.classList.remove('visible');
   setTimeout(() => modal.classList.add('hidden'), 200);
   pendingCoords = null;
+  nearbyPlace = null;
 }
 
 cancelBtn.addEventListener('click', closeModal);
@@ -61,6 +76,32 @@ document.addEventListener('keydown', (e) => {
   if (!modal.classList.contains('hidden')) closeModal();
   else closeSidebar();
 });
+
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files[0];
+  if (!file) {
+    hidePhotoPreview();
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    photoPreviewImg.src = e.target.result;
+    photoPreview.classList.remove('hidden');
+    photoLabel.classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+});
+
+photoRemove.addEventListener('click', () => {
+  photoInput.value = '';
+  hidePhotoPreview();
+});
+
+function hidePhotoPreview() {
+  photoPreview.classList.add('hidden');
+  photoPreviewImg.src = '';
+  photoLabel.classList.remove('hidden');
+}
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -80,94 +121,138 @@ form.addEventListener('submit', async (e) => {
     }
   }
 
-  const pin = {
-    id:          generateId(),
-    lat:         pendingCoords.lat,
-    lng:         pendingCoords.lng,
-    title:       titleInput.value.trim(),
-    date:        dateInput.value || '',
+  const memory = {
+    id: generateMemoryId(),
+    title: titleInput.value.trim(),
+    date: dateInput.value || '',
     description: descriptionInput.value.trim(),
-    photo:       photoData,
-    createdAt:   Date.now(),
+    photo: photoData,
+    createdAt: Date.now(),
   };
 
-  const saved = savePin(pin);
-  if (!saved) {
-    alert('Could not save your memory — browser storage is full.');
+  let place;
+  if (nearbyPlace) {
+    place = addMemoryToPlace(nearbyPlace.id, memory);
+  } else {
+    place = createPlaceWithMemory(pendingCoords.lat, pendingCoords.lng, memory);
+  }
+
+  if (!place) {
+    alert('Could not save your memory — browser storage might be full.');
     submitBtn.disabled = false;
     submitBtn.textContent = 'Save Memory';
     return;
   }
 
-  addPinToMap(pin);
+  removePlaceFromMap(place.id);
+  addPlaceToMap(place);
 
   submitBtn.disabled = false;
   submitBtn.textContent = 'Save Memory';
-  closeModal();
 
-  setTimeout(() => openSidebar(pin.id), 220);
+  const focusMemoryId = memory.id;
+  closeModal();
+  setTimeout(() => openSidebar(place.id, focusMemoryId), 220);
 });
 
-document.addEventListener('pin:selected', (e) => openSidebar(e.detail.id));
+document.addEventListener('place:selected', (e) => openSidebar(e.detail.id));
 closeSidebarBtn.addEventListener('click', closeSidebar);
 
-function openSidebar(id) {
-  const pin = getPinById(id);
-  if (!pin) return;
+function openSidebar(placeId, focusMemoryId = null) {
+  const place = getPlaceById(placeId);
+  if (!place) return;
 
-  activePinId = id;
-  renderSidebar(pin);
+  activePlaceId = placeId;
+  renderSidebar(place, focusMemoryId);
   sidebar.classList.add('open');
   sidebar.setAttribute('aria-hidden', 'false');
-  highlightMarker(id);
-  panToWithOffset(pin.lat, pin.lng);
+  highlightMarker(placeId);
+  panToWithOffset(place.lat, place.lng);
 }
 
 function closeSidebar() {
   if (!sidebar.classList.contains('open')) return;
   sidebar.classList.remove('open');
   sidebar.setAttribute('aria-hidden', 'true');
-  activePinId = null;
+  activePlaceId = null;
   highlightMarker(null);
 }
 
-function renderSidebar(pin) {
-  const dateStr = pin.date
-    ? new Date(pin.date).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+function renderSidebar(place, focusMemoryId = null) {
+  const count = place.memories.length;
+  const header = count > 1
+    ? `<div class="place-header"><span class="place-count">${count} memories</span></div>`
+    : '';
+
+  const memoriesHTML = place.memories
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .map((m) => renderMemoryCard(m, m.id === focusMemoryId))
+    .join('');
+
+  sidebarContent.innerHTML = `${header}${memoriesHTML}`;
+
+  sidebarContent.querySelectorAll('.delete-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleDeleteMemory(place.id, btn.dataset.memoryId);
+    });
+  });
+
+  sidebarContent.querySelectorAll('.memory-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.delete-btn')) return;
+      card.classList.toggle('expanded');
+    });
+  });
+}
+
+function renderMemoryCard(memory, expanded) {
+  const dateStr = memory.date
+    ? new Date(memory.date).toLocaleDateString(undefined, {
+        year: 'numeric', month: 'long', day: 'numeric',
       })
     : '';
 
-  const photoHTML = pin.photo
-    ? `<div class="memory-photo" style="background-image:url('${pin.photo}')"></div>`
+  const photoStyle = memory.photo
+    ? `style="background-image:url('${memory.photo}')"`
     : '';
 
-  const descHTML = pin.description
-    ? `<p class="memory-desc">${escapeHTML(pin.description)}</p>`
+  const photoClass = memory.photo
+    ? 'memory-photo'
+    : 'memory-photo memory-photo--empty';
+
+  const descHTML = memory.description
+    ? `<p class="memory-desc">${escapeHTML(memory.description)}</p>`
     : '';
 
-  sidebarContent.innerHTML = `
-    ${photoHTML}
-    <div class="memory-body">
-      <h2 class="memory-title">${escapeHTML(pin.title)}</h2>
-      ${dateStr ? `<p class="memory-date">${escapeHTML(dateStr)}</p>` : ''}
-      ${descHTML}
-      <button class="delete-btn" data-id="${pin.id}">Delete memory</button>
-    </div>
+  return `
+    <article class="memory-card${expanded ? ' expanded' : ''}">
+      <div class="${photoClass}" ${photoStyle}></div>
+      <div class="memory-body">
+        <h2 class="memory-title">${escapeHTML(memory.title)}</h2>
+        ${dateStr ? `<p class="memory-date">${escapeHTML(dateStr)}</p>` : ''}
+        ${descHTML}
+        <button class="delete-btn" data-memory-id="${memory.id}">Delete memory</button>
+      </div>
+    </article>
   `;
-
-  sidebarContent
-    .querySelector('.delete-btn')
-    .addEventListener('click', () => handleDelete(pin));
 }
 
-function handleDelete(pin) {
+function handleDeleteMemory(placeId, memoryId) {
   if (!confirm('Delete this memory?')) return;
-  deletePinById(pin.id);
-  removePinFromMap(pin.id);
-  closeSidebar();
+
+  const result = deleteMemory(placeId, memoryId);
+  if (!result) return;
+
+  if (result.removed) {
+    removePlaceFromMap(placeId);
+    closeSidebar();
+  } else {
+    removePlaceFromMap(placeId);
+    addPlaceToMap(result.place);
+    renderSidebar(result.place);
+  }
 }
 
 function panToWithOffset(lat, lng) {
@@ -186,41 +271,31 @@ function panToWithOffset(lat, lng) {
 
 function escapeHTML(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
 }
 
 function fileToDataURL(file, maxWidth = 800, quality = 0.75) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
-
         if (width > maxWidth) {
           height = Math.round((maxWidth / width) * height);
           width = maxWidth;
         }
-
         canvas.width = width;
         canvas.height = height;
-
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = reject;
       img.src = e.target.result;
     };
-
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });

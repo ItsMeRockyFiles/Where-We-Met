@@ -3,6 +3,9 @@ const FALLBACK_VIEW = { lat: 50.8503, lng: 4.3517, zoom: 4 };
 const map = L.map('map', {
   zoomControl: false,
   attributionControl: true,
+  worldCopyJump: true,
+  minZoom: 2,
+  maxZoom: 19,
 }).setView([FALLBACK_VIEW.lat, FALLBACK_VIEW.lng], FALLBACK_VIEW.zoom);
 
 L.tileLayer(
@@ -17,6 +20,12 @@ L.tileLayer(
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
 const markers = {};
+
+function normalizeLng(lng) {
+  while (lng > 180) lng -= 360;
+  while (lng < -180) lng += 360;
+  return lng;
+}
 
 let userLocationLayer = null;
 

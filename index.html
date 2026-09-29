@@ -32,6 +32,7 @@
   <div id="modal" class="hidden">
     <form id="memory-form">
       <h2>New Memory</h2>
+      <div id="nearby-hint" class="hidden"></div>
 
       <label for="title">Title</label>
       <input type="text" id="title" placeholder="e.g. Our first date" required maxlength="80" />
@@ -43,7 +44,21 @@
       <textarea id="description" rows="3" placeholder="What happened here?" maxlength="500"></textarea>
 
       <label for="photo">Photo</label>
-      <input type="file" id="photo" accept="image/*" />
+      <div class="photo-upload">
+        <input type="file" id="photo" accept="image/*" hidden />
+        <label for="photo" class="photo-upload-btn" id="photo-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>Choose a photo</span>
+        </label>
+        <div class="photo-preview hidden" id="photo-preview">
+          <img id="photo-preview-img" alt="Preview" />
+          <button type="button" class="photo-remove" id="photo-remove" aria-label="Remove photo">×</button>
+        </div>
+      </div>
 
       <div class="form-actions">
         <button type="button" id="cancel-btn">Cancel</button>
